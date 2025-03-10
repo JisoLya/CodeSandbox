@@ -8,6 +8,10 @@ import lombok.Data;
 @Data
 public class JudgeInfo {
     /**
+     * 代码是否执行完成
+     */
+    private boolean success;
+    /**
      * 判题信息
      */
     private String message;

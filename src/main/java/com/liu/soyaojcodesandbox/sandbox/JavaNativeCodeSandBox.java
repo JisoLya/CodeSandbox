@@ -24,6 +24,12 @@ public class JavaNativeCodeSandBox implements CodeSandbox {
         JudgeInfo judgeInfo = new JudgeInfo();
 
         String code = request.getCode();
+        //todo code权限校验
+        // 不允许执行阻塞 占用内存不释放 读文件 写文件 运行其他程序 执行高危命令
+        //校验代码，布隆过滤器
+        //字典树
+
+        //容器化技术
         List<String> inputList = request.getInputList();
         //todo 这里需要根据语言类型选择执行命令
         String language = request.getLanguage();
@@ -66,11 +72,22 @@ public class JavaNativeCodeSandBox implements CodeSandbox {
         //执行运行命令并获取输出
         File usrCodeDir = new File(userCodeDir);
         for (String inputArgs : inputList) {
-            String runCmd = String.format("java -Dfile.encoding=utf8 -cp %s Main %s", usrCodeDir.getAbsolutePath(), inputArgs);
+            //设置最大的JVM堆内存
+            String runCmd = String.format("java -Xmx256m -Dfile.encoding=utf8 -cp %s Main %s", usrCodeDir.getAbsolutePath(), inputArgs);
             ExecuteMessage runMsg;
             stopWatch.start();
             try {
-                runMsg = ProcessUtils.ExecuteCmd("run", Runtime.getRuntime().exec(runCmd));
+                Process exec = Runtime.getRuntime().exec(runCmd);
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(1000L * 3);
+                        log.info("执行超时了");
+                        exec.destroy();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }).start();
+                runMsg = ProcessUtils.ExecuteCmd("run", exec);
             } catch (Exception e) {
                 log.debug(e.getMessage());
                 judgeInfo.setMessage("SystemError");

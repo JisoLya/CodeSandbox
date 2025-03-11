@@ -20,7 +20,8 @@ class SoyaojCodeSandboxApplicationTests {
         ExecuteCodeRequest request = new ExecuteCodeRequest();
         request.setInputList(new ArrayList<>());
         request.setCode("public class Main{\n" +
-                "    public static void main(String[] args){\n" +
+                "    public static void main(String[] args) throws InterruptedException{\n" +
+//                "        Thread.sleep(5*1000L);\n" +
                 "        int a = Integer.parseInt(args[0]);\n" +
                 "        int b = Integer.parseInt(args[1]);\n" +
                 "        int c = a + b;\n" +

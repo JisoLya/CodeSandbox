@@ -2,6 +2,7 @@ package com.liu.soyaojcodesandbox.sandbox;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
+import com.liu.soyaojcodesandbox.checker.DictionaryTreeChecker;
 import com.liu.soyaojcodesandbox.constant.FileConstant;
 import com.liu.soyaojcodesandbox.model.ExecuteCodeRequest;
 import com.liu.soyaojcodesandbox.model.ExecuteCodeResponse;
@@ -25,10 +26,16 @@ public class JavaNativeCodeSandBox implements CodeSandbox {
 
         String code = request.getCode();
         //todo code权限校验
-        // 不允许执行阻塞 占用内存不释放 读文件 写文件 运行其他程序 执行高危命令
+        // 不允许执行阻塞done 占用内存不释放done 读文件 写文件 运行其他程序 执行高危命令
         //校验代码，布隆过滤器
         //字典树
-
+        if (DictionaryTreeChecker.checkExist(code)) {
+            //有违禁词
+            judgeInfo.setSuccess(false);
+            judgeInfo.setMessage("vulnerable code detected!");
+            executeCodeResponse.setJudgeInfo(judgeInfo);
+            return executeCodeResponse;
+        }
         //容器化技术
         List<String> inputList = request.getInputList();
         //todo 这里需要根据语言类型选择执行命令

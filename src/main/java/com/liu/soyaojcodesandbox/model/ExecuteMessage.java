@@ -10,10 +10,15 @@ public class ExecuteMessage {
     /**
      * 程序的正常执行输出
      */
-    public String message;
+    private String message;
 
     /**
      * 程序的错误输出
      */
-    public String errorMessage;
+    private String errorMessage;
+
+    /**
+     * 程序的执行时间
+     */
+    private Long runTime;
 }

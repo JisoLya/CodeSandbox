@@ -1,16 +1,14 @@
 package com.liu.soyaojcodesandbox;
 
-import com.liu.soyaojcodesandbox.checker.DicTreeChecker;
 import com.liu.soyaojcodesandbox.checker.DictionaryTreeChecker;
 import com.liu.soyaojcodesandbox.model.ExecuteCodeRequest;
 import com.liu.soyaojcodesandbox.model.ExecuteCodeResponse;
 import com.liu.soyaojcodesandbox.sandbox.JavaNativeCodeSandBox;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.Lexer;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
 
 @SpringBootTest
 class SoyaojCodeSandboxApplicationTests {
@@ -20,7 +18,7 @@ class SoyaojCodeSandboxApplicationTests {
     }
 
     @Test
-    void test() {
+    void test() throws ExecutionException, InterruptedException {
         ExecuteCodeRequest request = new ExecuteCodeRequest();
         request.setInputList(new ArrayList<>());
         request.setCode("public class Main{\n" +
@@ -51,5 +49,9 @@ class SoyaojCodeSandboxApplicationTests {
 
         boolean b = DictionaryTreeChecker.checkExist(code);
         System.out.println(b);
+    }
+
+    @Test
+    void TestThreadPool() {
     }
 }

@@ -8,6 +8,7 @@ public class SoyaojCodeSandboxApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(SoyaojCodeSandboxApplication.class, args);
+
     }
 
 }

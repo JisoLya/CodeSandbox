@@ -9,6 +9,7 @@ import com.liu.soyaojcodesandbox.model.ExecuteCodeResponse;
 import com.liu.soyaojcodesandbox.model.ExecuteMessage;
 import com.liu.soyaojcodesandbox.model.JudgeInfo;
 import com.liu.soyaojcodesandbox.process.ProcessUtils;
+import com.liu.soyaojcodesandbox.process.TaskGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StopWatch;
 
@@ -16,11 +17,17 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.*;
 
 @Slf4j
 public class JavaNativeCodeSandBox implements CodeSandbox {
+    ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(4,
+            8, 1000L * 3,
+            TimeUnit.MILLISECONDS,
+            new LinkedBlockingDeque<>(8));
+
     @Override
-    public ExecuteCodeResponse execute(ExecuteCodeRequest request) {
+    public ExecuteCodeResponse execute(ExecuteCodeRequest request) throws ExecutionException, InterruptedException {
         ExecuteCodeResponse executeCodeResponse = new ExecuteCodeResponse();
         JudgeInfo judgeInfo = new JudgeInfo();
 
@@ -42,6 +49,13 @@ public class JavaNativeCodeSandBox implements CodeSandbox {
         String language = request.getLanguage();
         inputList.add("1 2");
         inputList.add("3 4");
+        inputList.add("5 6");
+        inputList.add("7 8");
+        inputList.add("9 10");
+        inputList.add("11 12");
+        inputList.add("13 14");
+        inputList.add("15 16");
+        inputList.add("16 17");
 
         UUID uuid = UUID.randomUUID();
         //这个大概率是不存在的
@@ -83,24 +97,8 @@ public class JavaNativeCodeSandBox implements CodeSandbox {
             String runCmd = String.format("java -Xmx256m -Dfile.encoding=utf8 -cp %s Main %s", usrCodeDir.getAbsolutePath(), inputArgs);
             ExecuteMessage runMsg;
             stopWatch.start();
-            try {
-                Process exec = Runtime.getRuntime().exec(runCmd);
-                new Thread(() -> {
-                    try {
-                        Thread.sleep(1000L * 3);
-                        log.info("执行超时了");
-                        exec.destroy();
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
-                    }
-                }).start();
-                runMsg = ProcessUtils.ExecuteCmd("run", exec);
-            } catch (Exception e) {
-                log.debug(e.getMessage());
-                judgeInfo.setMessage("SystemError");
-                executeCodeResponse.setJudgeInfo(judgeInfo);
-                return executeCodeResponse;
-            }
+            Future<ExecuteMessage> submitted = threadPoolExecutor.submit(new TaskGenerator(runCmd, inputArgs));
+            runMsg = submitted.get();
             if (!StrUtil.isEmpty(runMsg.getErrorMessage())) {
                 //运行错误，需要特殊处理
                 //出现错误直接封装返回

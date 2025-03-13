@@ -2,7 +2,8 @@ package com.liu.soyaojcodesandbox.sandbox;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
-import com.liu.soyaojcodesandbox.checker.DictionaryTreeChecker;
+import com.liu.soyaojcodesandbox.checker.BloomFilter;
+import com.liu.soyaojcodesandbox.checker.DictionaryTreeFilter;
 import com.liu.soyaojcodesandbox.constant.FileConstant;
 import com.liu.soyaojcodesandbox.model.ExecuteCodeRequest;
 import com.liu.soyaojcodesandbox.model.ExecuteCodeResponse;
@@ -21,9 +22,15 @@ import java.util.concurrent.*;
 
 @Slf4j
 public class JavaNativeCodeSandBox implements CodeSandbox {
-    ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(4,
+
+    private final BloomFilter bloomFilter = new BloomFilter();
+
+    private final DictionaryTreeFilter dictionaryTreeFilter = new DictionaryTreeFilter();
+
+    private final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(4,
             8, 1000L * 3,
             TimeUnit.MILLISECONDS,
+            //无上限的任务队列
             new LinkedBlockingDeque<>(8),
             //不能采用Abort策略
             new ThreadPoolExecutor.CallerRunsPolicy());
@@ -37,14 +44,20 @@ public class JavaNativeCodeSandBox implements CodeSandbox {
         //todo code权限校验
         // 不允许执行阻塞done 占用内存不释放done 读文件 写文件 运行其他程序 执行高危命令
         //校验代码，布隆过滤器
-        //字典树done
-        if (DictionaryTreeChecker.checkExist(code)) {
-            //有违禁词
+        if (bloomFilter.checkExist(code)) {
             judgeInfo.setSuccess(false);
             judgeInfo.setMessage("vulnerable code detected!");
             executeCodeResponse.setJudgeInfo(judgeInfo);
             return executeCodeResponse;
         }
+        //字典树done
+//        if (dictionaryTreeFilter.checkExist(code)) {
+//            //有违禁词
+//            judgeInfo.setSuccess(false);
+//            judgeInfo.setMessage("vulnerable code detected!");
+//            executeCodeResponse.setJudgeInfo(judgeInfo);
+//            return executeCodeResponse;
+//        }
         //容器化技术
         List<String> inputList = request.getInputList();
         //todo 这里需要根据语言类型选择执行命令
@@ -83,7 +96,7 @@ public class JavaNativeCodeSandBox implements CodeSandbox {
         }
 
         //用于记录程序的执行时间
-        long maxTime = 0;
+
         //执行运行命令并获取输出
         File usrCodeDir = new File(userCodeDir);
         List<Future<ExecuteMessage>> futures = new ArrayList<>();
@@ -93,6 +106,7 @@ public class JavaNativeCodeSandBox implements CodeSandbox {
             futures.add(threadPoolExecutor.submit(new TaskGenerator(runCmd)));
         }
 
+        long maxTime = 0;
         for (Future<ExecuteMessage> future : futures) {
             try {
                 ExecuteMessage runMsg = future.get(); // 按任务完成顺序获取结果,捕获线程抛出的异常

@@ -1,5 +1,11 @@
 package com.liu.soyaojcodesandbox;
 
+import com.github.javaparser.StaticJavaParser;
+import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.expr.Name;
+import com.github.javaparser.ast.expr.SimpleName;
+import com.github.javaparser.ast.expr.StringLiteralExpr;
+import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.liu.soyaojcodesandbox.checker.DictionaryTreeFilter;
 import com.liu.soyaojcodesandbox.model.ExecuteCodeRequest;
 import com.liu.soyaojcodesandbox.model.ExecuteCodeResponse;
@@ -8,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -133,5 +140,46 @@ class SoyaojCodeSandboxApplicationTests {
                 "}");
         ExecuteCodeResponse executeCodeResponse = new JavaNativeCodeSandBox().execute(request);
         System.out.println(executeCodeResponse);
+    }
+
+    @Test
+    void TestJavaParser() {
+        String code = "import java.io.IOException;\n" +
+                "\n" +
+                "public class Main {\n" +
+                "    public static void main(String[] args) throws IOException {\n" +
+                "        String cmd = \"echo hello\";\n" +
+                "        Runtime.getRuntime().exec(cmd);\n" +
+                "    }\n" +
+                "}";
+        List<String> tokens = new ArrayList<>();
+        CompilationUnit unit = StaticJavaParser.parse(code);
+        unit.accept(new VoidVisitorAdapter<Void>() {
+            @Override
+            public void visit(SimpleName n, Void arg) {
+                tokens.add(n.getIdentifier());
+                System.out.println("identifier = " + n.getIdentifier());
+                super.visit(n, arg);
+            }
+
+//            @Override
+//            public void visit(Name n, Void arg) {
+//                tokens.add(n.asString());
+//                System.out.println("n.asString = " + n.asString());
+//                super.visit(n, arg);
+//            }
+
+//            @Override
+//            public void visit(StringLiteralExpr n, Void arg) {
+//                tokens.add(n.getValue());
+//                System.out.println("value = " + n.getValue());
+//                super.visit(n, arg);
+//            }
+        }, null);
+
+        System.out.println("通过 AST 提取的 token:");
+        for (int i = 0; i < tokens.size(); i++) {
+            System.out.println(i + ": " + tokens.get(i));
+        }
     }
 }

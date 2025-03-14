@@ -44,6 +44,8 @@ public class JavaNativeCodeSandBox implements CodeSandbox {
         //todo code权限校验
         // 不允许执行阻塞done 占用内存不释放done 读文件 写文件 运行其他程序 执行高危命令
         //校验代码，布隆过滤器
+
+        //其实这里设计的不太好，因为布隆过滤器存在误判，不能因为误判从而拒绝用户的代码提交.
         if (bloomFilter.checkExist(code)) {
             judgeInfo.setSuccess(false);
             judgeInfo.setMessage("vulnerable code detected!");
@@ -73,7 +75,7 @@ public class JavaNativeCodeSandBox implements CodeSandbox {
         File userCodeFile = new File(userCodeDir + File.separator + FileConstant.JAVA_CLASS_NAME);
         FileUtil.writeString(code, userCodeFile, StandardCharsets.UTF_8);
         //执行编译命令
-        //指定编译的错误输出为英文,直接避免出现乱码问题
+        //指定编译的错误输出为英文,避免出现乱码问题
         String compileCmd = String.format("javac -encoding utf8 -J-Duser.language=en %s", userCodeFile.getAbsolutePath());
         ExecuteMessage compileMsg;
         try {

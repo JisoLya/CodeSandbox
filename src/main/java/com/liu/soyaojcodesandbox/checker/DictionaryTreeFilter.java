@@ -7,7 +7,7 @@ public class DictionaryTreeFilter implements Check {
     public static final WordTree dicTreeList;
     static {
         dicTreeList = new WordTree();
-        dicTreeList.addWord("Files");
+        dicTreeList.addWord("File");
         dicTreeList.addWord("exec");
         dicTreeList.addWord("Runtime");
     }

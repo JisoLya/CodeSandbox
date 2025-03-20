@@ -36,7 +36,7 @@ public class JavaNativeCodeSandBox implements CodeSandbox {
             new ThreadPoolExecutor.CallerRunsPolicy());
 
     @Override
-    public ExecuteCodeResponse execute(ExecuteCodeRequest request) throws ExecutionException, InterruptedException {
+    public ExecuteCodeResponse execute(ExecuteCodeRequest request) {
         ExecuteCodeResponse executeCodeResponse = new ExecuteCodeResponse();
         JudgeInfo judgeInfo = new JudgeInfo();
 
@@ -53,13 +53,13 @@ public class JavaNativeCodeSandBox implements CodeSandbox {
             return executeCodeResponse;
         }
         //字典树done
-//        if (dictionaryTreeFilter.checkExist(code)) {
-//            //有违禁词
-//            judgeInfo.setSuccess(false);
-//            judgeInfo.setMessage("vulnerable code detected!");
-//            executeCodeResponse.setJudgeInfo(judgeInfo);
-//            return executeCodeResponse;
-//        }
+        if (dictionaryTreeFilter.checkExist(code)) {
+            //有违禁词
+            judgeInfo.setSuccess(false);
+            judgeInfo.setMessage("vulnerable code detected!");
+            executeCodeResponse.setJudgeInfo(judgeInfo);
+            return executeCodeResponse;
+        }
         //容器化技术
         List<String> inputList = request.getInputList();
         //todo 这里需要根据语言类型选择执行命令
@@ -85,8 +85,6 @@ public class JavaNativeCodeSandBox implements CodeSandbox {
             judgeInfo.setMessage("SystemError");
             executeCodeResponse.setJudgeInfo(judgeInfo);
             return executeCodeResponse;
-        } finally {
-            clearUserCodeDir(userCodeDir);
         }
 
         if (!StrUtil.isEmpty(compileMsg.getErrorMessage())) {

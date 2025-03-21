@@ -16,17 +16,25 @@
 
 package com.liu.soyaojcodesandbox.demos.web;
 
+import com.liu.soyaojcodesandbox.model.ExecuteCodeRequest;
+import com.liu.soyaojcodesandbox.model.ExecuteCodeResponse;
+import com.liu.soyaojcodesandbox.sandbox.JavaDockerCodeSandBox;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * @author <a href="mailto:chenxilzx1@gmail.com">theonefx</a>
  */
 @Controller
 public class BasicController {
+    // 定义鉴权请求头和密钥
+    private static final String AUTH_REQUEST_HEADER = "auth";
+
+    private static final String AUTH_REQUEST_SECRET = "secretKey";
+
 
     // http://127.0.0.1:8080/hello?name=lisi
     @RequestMapping("/hello")
@@ -35,33 +43,17 @@ public class BasicController {
         return "Hello " + name;
     }
 
-    // http://127.0.0.1:8080/user
-    @RequestMapping("/user")
+    @PostMapping("/executeCode")
     @ResponseBody
-    public User user() {
-        User user = new User();
-        user.setName("theonefx");
-        user.setAge(666);
-        return user;
-    }
-
-    // http://127.0.0.1:8080/save_user?name=newName&age=11
-    @RequestMapping("/save_user")
-    @ResponseBody
-    public String saveUser(User u) {
-        return "user will save: name=" + u.getName() + ", age=" + u.getAge();
-    }
-
-    // http://127.0.0.1:8080/html
-    @RequestMapping("/html")
-    public String html() {
-        return "index.html";
-    }
-
-    @ModelAttribute
-    public void parseUser(@RequestParam(name = "name", defaultValue = "unknown user") String name
-            , @RequestParam(name = "age", defaultValue = "12") Integer age, User user) {
-        user.setName("zhangsan");
-        user.setAge(18);
+    ExecuteCodeResponse executeCode(@RequestBody ExecuteCodeRequest request, HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
+        if (request == null) {
+            throw new RuntimeException("request is null");
+        }
+        String authHeader = httpServletRequest.getHeader(AUTH_REQUEST_HEADER);
+        if (authHeader == null || !AUTH_REQUEST_SECRET.equals(authHeader)) {
+            httpServletResponse.setStatus(403);
+            return null;
+        }
+        return JavaDockerCodeSandBox.getInstance().execute(request);
     }
 }

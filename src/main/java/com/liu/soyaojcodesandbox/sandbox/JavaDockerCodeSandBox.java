@@ -178,7 +178,7 @@ public class JavaDockerCodeSandBox implements CodeSandbox {
             }
         }
         judgeInfo.setSuccess(true);
-        judgeInfo.setTime(maxTime);
+        judgeInfo.setTimeLimit(maxTime);
         judgeInfo.setMessage("ok");
         executeCodeResponse.setJudgeInfo(judgeInfo);
 

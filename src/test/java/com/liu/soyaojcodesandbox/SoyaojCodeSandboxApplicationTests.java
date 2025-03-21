@@ -360,7 +360,7 @@ class SoyaojCodeSandboxApplicationTests {
         request.setCode(code);
         ExecuteCodeResponse executeCodeResponse = instance.execute(request);
 
-        log.debug("{}",executeCodeResponse);
+        System.out.println(executeCodeResponse);
     }
 
     @Test

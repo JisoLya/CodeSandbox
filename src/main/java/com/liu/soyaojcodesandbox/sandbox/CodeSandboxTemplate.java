@@ -116,6 +116,7 @@ public abstract class CodeSandboxTemplate implements CodeSandbox {
         judgeInfo.setSuccess(true);
         executeCodeResponse.setOutput(outputList);
         executeCodeResponse.setJudgeInfo(judgeInfo);
+        ClearUserCodeDir(userCodeDir);
         return executeCodeResponse;
     }
 

@@ -1,7 +1,6 @@
 package com.liu.soyaojcodesandbox.sandbox;
 
 import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.util.StrUtil;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.command.CreateContainerResponse;
@@ -13,23 +12,16 @@ import com.liu.soyaojcodesandbox.constant.FileConstant;
 import com.liu.soyaojcodesandbox.model.ExecuteCodeRequest;
 import com.liu.soyaojcodesandbox.model.ExecuteCodeResponse;
 import com.liu.soyaojcodesandbox.model.ExecuteMessage;
-import com.liu.soyaojcodesandbox.model.JudgeInfo;
-import com.liu.soyaojcodesandbox.process.ProcessUtils;
 import com.liu.soyaojcodesandbox.process.TaskGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
-public class JavaDockerCodeSandBox implements CodeSandbox {
+public class JavaDockerCodeSandBox extends CodeSandboxTemplate implements CodeSandbox {
 
     private static final Logger log = LoggerFactory.getLogger(JavaDockerCodeSandBox.class);
     public final DockerClient dockerClient;
@@ -108,82 +100,26 @@ public class JavaDockerCodeSandBox implements CodeSandbox {
      */
     @Override
     public ExecuteCodeResponse execute(ExecuteCodeRequest request) {
-        ExecuteCodeResponse executeCodeResponse = new ExecuteCodeResponse();
-        JudgeInfo judgeInfo = new JudgeInfo();
-        String code = request.getCode();
-        if (dictionaryTreeFilter.checkExist(code)) {
-            judgeInfo.setSuccess(false);
-            judgeInfo.setMessage("vulnerable code detected!");
-            executeCodeResponse.setJudgeInfo(judgeInfo);
-            return executeCodeResponse;
-        }
+        return super.execute(request);
+    }
 
-        List<String> inputList = request.getInputList();
-        //暂时没用
-        String language = request.getLanguage();
-        //创建用户代码目录及对应的Main.java文件
-        UUID uuid = UUID.randomUUID();
-        String userHome = System.getProperty("user.home");
-        String userCodeDir = userHome + File.separator + "CodeSandbox" + File.separator + "tempCode" + File.separator + uuid;
-        File javaFile = new File(userCodeDir + File.separator + FileConstant.JAVA_CLASS_NAME);
-        FileUtil.writeString(code, javaFile, StandardCharsets.UTF_8);
-
-        //编译在本机目录下进行，而运行需要执行docker命令
-        String compileCmd = String.format("javac -encoding utf8 -J-Duser.language=en %s", javaFile.getAbsolutePath());
-        ExecuteMessage compileMsg;
-        try {
-            compileMsg = ProcessUtils.ExecuteCmd("compile", Runtime.getRuntime().exec(compileCmd));
-        } catch (Exception e) {
-            log.debug(e.getMessage());
-            judgeInfo.setMessage("SystemError");
-            executeCodeResponse.setJudgeInfo(judgeInfo);
-            return executeCodeResponse;
-        }
-        if (!StrUtil.isEmpty(compileMsg.getErrorMessage())) {
-            log.info("编译失败");
-            judgeInfo.setMessage(compileMsg.getErrorMessage());
-            executeCodeResponse.setJudgeInfo(judgeInfo);
-            clearUserCodeDir(userCodeDir);
-            return executeCodeResponse;
-        }
-
-        //代码运行阶段
+    @Override
+    public List<ExecuteMessage> RunCode(String classDir, List<String> inputList) throws ExecutionException, InterruptedException {
+        List<ExecuteMessage> executeMessageList = new ArrayList<>();
         List<Future<ExecuteMessage>> futures = new ArrayList<>();
+        System.out.println(classDir);
+        String[] strings = classDir.split("/");
+        classDir = strings[strings.length - 1];
         for (String args : inputList) {
             //这里读取命令的时候会把整个字符串作为一个输入
-            String runCmd = String.format("docker exec %s java -Xmx256m -Dfile.encoding=utf8 -cp %s %s %s", CONTAINER_NAME, uuid, FileConstant.MAIN_CLASS_NAME, args);
+            String runCmd = String.format("docker exec %s java -Xmx256m -Dfile.encoding=utf8 -cp %s %s %s", CONTAINER_NAME, classDir, FileConstant.MAIN_CLASS_NAME, args);
             futures.add(threadPoolExecutor.submit(new TaskGenerator(runCmd)));
         }
-        long maxTime = 0;
-        for (Future<ExecuteMessage> future : futures) {
-            try {
-                ExecuteMessage runMsg = future.get(); // 按任务完成顺序获取结果,捕获线程抛出的异常
-                System.out.println(runMsg);
-                if (!StrUtil.isEmpty(runMsg.getErrorMessage())) {
-                    judgeInfo.setMessage(runMsg.getErrorMessage());
-                    executeCodeResponse.setJudgeInfo(judgeInfo);
-                    clearUserCodeDir(userCodeDir);
-                    return executeCodeResponse;
-                }
-                maxTime = Math.max(maxTime, runMsg.getRunTime());
-                executeCodeResponse.getOutput().add(runMsg.getMessage());
-            } catch (Exception e) {
-                //系统错误
-                log.debug(e.getMessage());
-                judgeInfo.setMessage("SystemError");
-                executeCodeResponse.setJudgeInfo(judgeInfo);
-                return executeCodeResponse;
-            } finally {
-                clearUserCodeDir(userCodeDir);
-            }
+        for(Future<ExecuteMessage> f : futures) {
+            ExecuteMessage executeMessage = f.get();
+            executeMessageList.add(executeMessage);
         }
-        judgeInfo.setSuccess(true);
-        judgeInfo.setTimeLimit(maxTime);
-        judgeInfo.setMessage("ok");
-        executeCodeResponse.setJudgeInfo(judgeInfo);
-
-        clearUserCodeDir(userCodeDir);
-        return executeCodeResponse;
+        return executeMessageList;
     }
 
     /**

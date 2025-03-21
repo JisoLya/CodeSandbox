@@ -10,7 +10,6 @@ import java.util.List;
 @AllArgsConstructor
 public class ExecuteCodeResponse {
     public ExecuteCodeResponse() {
-        this.output = new ArrayList<>();
     }
 
     private JudgeInfo judgeInfo;

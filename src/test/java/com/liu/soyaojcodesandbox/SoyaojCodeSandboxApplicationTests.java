@@ -52,7 +52,6 @@ class SoyaojCodeSandboxApplicationTests {
         request.setInputList(arrayList);
         request.setCode("public class Main{\n" +
                 "    public static void main(String[] args) throws InterruptedException{\n" +
-//                "        Thread.sleep(5*1000L);\n" +
                 "        int a = Integer.parseInt(args[0]);\n" +
                 "        int b = Integer.parseInt(args[1]);\n" +
                 "        int c = a + b;\n" +
@@ -97,12 +96,15 @@ class SoyaojCodeSandboxApplicationTests {
                 "    }\n" +
                 "}"
         );
+        long startTime = System.currentTimeMillis();
         ExecuteCodeResponse executeCodeResponse = new JavaNativeCodeSandBox().execute(request);
+        long endTime = System.currentTimeMillis();
+        System.out.println(endTime - startTime);
         System.out.println(executeCodeResponse);
     }
 
     @Test
-    void TestInfiniteLoop() throws ExecutionException, InterruptedException {
+    void TestInfiniteLoop() {
         ExecuteCodeRequest request = new ExecuteCodeRequest();
         ArrayList<String> inputList = new ArrayList<>();
         inputList.add("1 2");

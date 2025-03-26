@@ -14,17 +14,21 @@ import com.github.javaparser.ast.expr.SimpleName;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.liu.soyaojcodesandbox.checker.DictionaryTreeFilter;
 import com.liu.soyaojcodesandbox.constant.FileConstant;
+import com.liu.soyaojcodesandbox.message.RabbitMQTemplateCreator;
 import com.liu.soyaojcodesandbox.model.ExecuteCodeRequest;
 import com.liu.soyaojcodesandbox.model.ExecuteCodeResponse;
 import com.liu.soyaojcodesandbox.model.ExecuteMessage;
 import com.liu.soyaojcodesandbox.process.ProcessUtils;
 import com.liu.soyaojcodesandbox.sandbox.JavaDockerCodeSandBox;
 import com.liu.soyaojcodesandbox.sandbox.JavaNativeCodeSandBox;
+import org.apache.http.util.Asserts;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import javax.annotation.Resource;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
@@ -37,6 +41,7 @@ import java.util.regex.Pattern;
 
 @SpringBootTest
 class SoyaojCodeSandboxApplicationTests {
+
 
     private static final Logger log = LoggerFactory.getLogger(SoyaojCodeSandboxApplicationTests.class);
 
@@ -384,5 +389,11 @@ class SoyaojCodeSandboxApplicationTests {
 // Print results
         System.out.println("Output: " + stdout.toString()); // Should print "3"
         System.out.println("Errors (if any): " + stderr.toString());
+    }
+
+    @Test
+    public void testQueue() {
+        RabbitTemplate template = RabbitMQTemplateCreator.createTemplateForExisting("10.195.102.74", 5672, "soya", "soya");
+        template.convertAndSend("submit_exchange", "submit_routKey", "test");
     }
 }

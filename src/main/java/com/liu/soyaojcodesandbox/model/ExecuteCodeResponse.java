@@ -11,6 +11,15 @@ public class ExecuteCodeResponse {
     public ExecuteCodeResponse() {
     }
 
+    /**
+     * 题目提交的ID
+     */
+    private long questionSubmitId;
+    /**
+     * 题目的id
+     */
+    private Long id;
+
     private JudgeInfo judgeInfo;
     /**
      * 程序输出

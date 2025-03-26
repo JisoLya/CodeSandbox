@@ -1,25 +1,30 @@
 package com.liu.soyaojcodesandbox.sandbox;
 
+import cn.hutool.json.JSONUtil;
 import com.liu.soyaojcodesandbox.checker.BloomFilter;
 import com.liu.soyaojcodesandbox.checker.DictionaryTreeFilter;
+import com.liu.soyaojcodesandbox.message.RabbitMQTemplateCreator;
 import com.liu.soyaojcodesandbox.model.ExecuteCodeRequest;
 import com.liu.soyaojcodesandbox.model.ExecuteCodeResponse;
 import com.liu.soyaojcodesandbox.model.ExecuteMessage;
 import com.liu.soyaojcodesandbox.process.TaskGenerator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
 @Slf4j
-public class JavaNativeCodeSandBox extends CodeSandboxTemplate implements CodeSandbox {
+public class JavaNativeCodeSandBox extends CodeSandboxTemplate{
+
+    private final RabbitTemplate rabbitTemplate = RabbitMQTemplateCreator.createTemplateForExisting("10.195.102.74", 5672, "soya", "soya");;
 
     private final BloomFilter bloomFilter = new BloomFilter();
 
     private final DictionaryTreeFilter dictionaryTreeFilter = new DictionaryTreeFilter();
 
-    private final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(4,
+    private final ThreadPoolExecutor threadPoolExecutor = new ThreadPoolExecutor(5,
             8, 1000L * 3,
             TimeUnit.MILLISECONDS,
             //无上限的任务队列
@@ -29,7 +34,11 @@ public class JavaNativeCodeSandBox extends CodeSandboxTemplate implements CodeSa
 
     @Override
     public ExecuteCodeResponse execute(ExecuteCodeRequest request) {
-        return super.execute(request);
+        ExecuteCodeResponse executeCodeResponse = super.execute(request);
+        String jsonStr = JSONUtil.toJsonStr(executeCodeResponse);
+        log.info("send to queue {}", jsonStr);
+        rabbitTemplate.convertAndSend("submit_exchange", "submit_routKey", jsonStr);
+        return executeCodeResponse;
     }
 
     @Override

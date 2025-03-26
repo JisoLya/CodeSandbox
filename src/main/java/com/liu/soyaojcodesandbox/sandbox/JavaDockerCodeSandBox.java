@@ -1,6 +1,7 @@
 package com.liu.soyaojcodesandbox.sandbox;
 
 import cn.hutool.core.io.FileUtil;
+import cn.hutool.json.JSONUtil;
 import com.github.dockerjava.api.DockerClient;
 import com.github.dockerjava.api.async.ResultCallback;
 import com.github.dockerjava.api.command.CreateContainerResponse;
@@ -9,23 +10,27 @@ import com.github.dockerjava.api.model.*;
 import com.github.dockerjava.core.DockerClientBuilder;
 import com.liu.soyaojcodesandbox.checker.DictionaryTreeFilter;
 import com.liu.soyaojcodesandbox.constant.FileConstant;
+import com.liu.soyaojcodesandbox.message.RabbitMQTemplateCreator;
 import com.liu.soyaojcodesandbox.model.ExecuteCodeRequest;
 import com.liu.soyaojcodesandbox.model.ExecuteCodeResponse;
 import com.liu.soyaojcodesandbox.model.ExecuteMessage;
 import com.liu.soyaojcodesandbox.process.TaskGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 
-public class JavaDockerCodeSandBox extends CodeSandboxTemplate implements CodeSandbox {
+public class JavaDockerCodeSandBox extends CodeSandboxTemplate {
+
 
     private static final Logger log = LoggerFactory.getLogger(JavaDockerCodeSandBox.class);
     public final DockerClient dockerClient;
 
+    private RabbitTemplate rabbitTemplate;
     /**
      * 一个dockerSandbox的实例
      */
@@ -47,9 +52,10 @@ public class JavaDockerCodeSandBox extends CodeSandboxTemplate implements CodeSa
      */
     public static final String JAVA_IMAGE_NAME = "dockette/jdk8";
 
+
     private JavaDockerCodeSandBox() {
         //单例模式需要私有化构造方法
-        this.threadPoolExecutor = new ThreadPoolExecutor(4,
+        this.threadPoolExecutor = new ThreadPoolExecutor(5,
                 8, 1000L * 3,
                 TimeUnit.MILLISECONDS,
                 //无上限的任务队列
@@ -61,6 +67,7 @@ public class JavaDockerCodeSandBox extends CodeSandboxTemplate implements CodeSa
         if (checkExistImage(JAVA_IMAGE_NAME) == null) {
             pullImage(JAVA_IMAGE_NAME, "latest");
         }
+        this.rabbitTemplate = RabbitMQTemplateCreator.createTemplateForExisting("10.195.102.74", 5672, "soya", "soya");
 
         Container container = checkExistContainer();
         if (container == null) {
@@ -100,7 +107,12 @@ public class JavaDockerCodeSandBox extends CodeSandboxTemplate implements CodeSa
      */
     @Override
     public ExecuteCodeResponse execute(ExecuteCodeRequest request) {
-        return super.execute(request);
+
+        ExecuteCodeResponse executeCodeResponse = super.execute(request);
+        String jsonStr = JSONUtil.toJsonStr(executeCodeResponse);
+        log.info("send to queue {}", jsonStr);
+        rabbitTemplate.convertAndSend("submit_exchange", "submit_routKey", jsonStr);
+        return executeCodeResponse;
     }
 
     @Override
@@ -115,7 +127,7 @@ public class JavaDockerCodeSandBox extends CodeSandboxTemplate implements CodeSa
             String runCmd = String.format("docker exec %s java -Xmx256m -Dfile.encoding=utf8 -cp %s %s %s", CONTAINER_NAME, classDir, FileConstant.MAIN_CLASS_NAME, args);
             futures.add(threadPoolExecutor.submit(new TaskGenerator(runCmd)));
         }
-        for(Future<ExecuteMessage> f : futures) {
+        for (Future<ExecuteMessage> f : futures) {
             ExecuteMessage executeMessage = f.get();
             executeMessageList.add(executeMessage);
         }

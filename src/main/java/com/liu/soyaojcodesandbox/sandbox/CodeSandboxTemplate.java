@@ -20,7 +20,6 @@ import java.util.concurrent.ExecutionException;
 
 @Slf4j
 public abstract class CodeSandboxTemplate implements CodeSandbox {
-
     public String CreateUserCodeDir() {
         UUID uuid = UUID.randomUUID();
         //这个大概率是不存在的
@@ -116,6 +115,8 @@ public abstract class CodeSandboxTemplate implements CodeSandbox {
         judgeInfo.setSuccess(true);
         executeCodeResponse.setOutput(outputList);
         executeCodeResponse.setJudgeInfo(judgeInfo);
+        executeCodeResponse.setId(request.getId());
+        executeCodeResponse.setQuestionSubmitId(request.getQuestionSubmitId());
         ClearUserCodeDir(userCodeDir);
         return executeCodeResponse;
     }

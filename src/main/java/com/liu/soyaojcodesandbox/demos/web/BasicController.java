@@ -35,14 +35,6 @@ public class BasicController {
 
     private static final String AUTH_REQUEST_SECRET = "secretKey";
 
-
-    // http://127.0.0.1:8080/hello?name=lisi
-    @RequestMapping("/hello")
-    @ResponseBody
-    public String hello(@RequestParam(name = "name", defaultValue = "unknown user") String name) {
-        return "Hello " + name;
-    }
-
     @PostMapping("/executeCode")
     @ResponseBody
     ExecuteCodeResponse executeCode(@RequestBody ExecuteCodeRequest request, HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
